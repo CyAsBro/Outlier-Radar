@@ -1,6 +1,6 @@
-"""Outlier Radar 2.2 – Fixed for OpenAI 2025
+"""Outlier Radar 2.3 – Click‑to‑Rewrite Edition
 Multi‑channel YouTube scanner • Last 50 videos • Lifetime outliers
-Adds engagement ratios, thumbnail hues, and GPT-3.5 chat-based title rewrites.
+Adds engagement ratios, thumbnail hues, and *click button for AI title*.
 Author: Toby (Katlein Media)
 """
 
@@ -63,14 +63,14 @@ def detect_outliers(df: pd.DataFrame) -> pd.DataFrame:
         out_frames.append(grp[grp["outlier_score"] >= OUTLIER_MULTIPLIER])
     return pd.concat(out_frames) if out_frames else pd.DataFrame()
 
-def rewrite_title(openai_key: str, title: str) -> str:
+def lazy_rewrite_title(openai_key: str, title: str) -> str:
     if not openai_key:
-        return "(Add OpenAI key to get AI suggestions)"
+        return "(OpenAI key missing)"
     client = OpenAI(api_key=openai_key)
     chat = client.chat.completions.create(
         model="gpt-3.5-turbo",
         messages=[
-            {"role": "system", "content": "You are a YouTube title expert. Short, curiosity-driven, no clickbait, 12 words max."},
+            {"role": "system", "content": "You are a YouTube title expert. Short, curiosity-driven, no clickbait, max 12 words."},
             {"role": "user", "content": f"Rewrite this title: {title}"},
         ],
         temperature=0.7,
@@ -108,8 +108,8 @@ def dominant_hue(video_id: str) -> str:
         return "error"
 
 # ------------------- UI ---------------------
-st.set_page_config(page_title="Outlier Radar 2.2", layout="wide")
-st.title("🎯 Outlier Radar 2.2 – Deep Insights")
+st.set_page_config(page_title="Outlier Radar 2.3", layout="wide")
+st.title("🎯 Outlier Radar 2.3 – Click‑to‑Rewrite")
 
 api_key_input = st.sidebar.text_input("YouTube API Key (optional override)", type="password")
 openai_key_input = st.sidebar.text_input("OpenAI API Key (optional override)", type="password")
@@ -142,18 +142,17 @@ if st.sidebar.button("Run Analysis") and api_key and channels_text.strip():
         st.info("No outliers under current settings.")
     else:
         st.subheader("🚀 Lifetime Outliers")
-        for _, row in out_df.sort_values("outlier_score", ascending=False).iterrows():
-            st.markdown(f"### [{row['title']}](https://youtu.be/{row['video_id']})")
-            st.write(
-                f"Channel: `{row['channel_id']}` | Views: {row['views']:,} | "
-                f"Score: {row['outlier_score']:.2f}× | 👍 {row['like_ratio']*100:.1f}% | 💬 {row['comment_ratio']*100:.2f}%"
-            )
-            suggestion = rewrite_title(openai_key, row["title"])
-            st.write("**AI Title Idea:**", suggestion)
-            hue = dominant_hue(row["video_id"])
-            st.write(f"Thumbnail hue: **{hue}**")
-            st.image(f"https://i.ytimg.com/vi/{row['video_id']}/hqdefault.jpg", width=320)
-            st.markdown("---")
+        for idx, row in out_df.sort_values("outlier_score", ascending=False).iterrows():
+            with st.expander(f"{row['title']} ({row['outlier_score']:.2f}×)"):
+                st.write(
+                    f"Channel: `{row['channel_id']}`\n"
+                    f"Views: {row['views']:,}  |  👍 {row['like_ratio']*100:.1f}%  |  💬 {row['comment_ratio']*100:.2f}%"
+                )
+                st.image(f"https://i.ytimg.com/vi/{row['video_id']}/hqdefault.jpg", width=320)
+                st.write(f"Thumbnail hue: **{dominant_hue(row['video_id'])}**")
+                if st.button(f"Rewrite Title {idx}"):
+                    suggestion = lazy_rewrite_title(openai_key, row["title"])
+                    st.success(f"Suggested title: {suggestion}")
 
         st.subheader("📊 Engagement Averages by Channel")
         agg = all_df.groupby("channel_id").agg(median_like_ratio=("like_ratio","median"), median_comment_ratio=("comment_ratio","median"))
