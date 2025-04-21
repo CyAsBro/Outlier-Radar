@@ -179,7 +179,7 @@ if st.sidebar.button("Run Analysis") and api_key and channels_text.strip():
         st.stop()
 
     out_df = detect_outliers(all_df)
-    if out_df.empty():
+    if out_df.empty:
         st.info("No outliers under current settings.")
     else:
         st.subheader("🚀 Lifetime Outliers")
