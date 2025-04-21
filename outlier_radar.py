@@ -174,7 +174,7 @@ if st.sidebar.button("Run Analysis") and api_key and channels_text.strip():
         except Exception as e:
             st.error(f"Failed {cid}: {e}")
     bar.empty()
-    if all_df.empty():
+    if all_df.empty:
         st.warning("No data loaded.")
         st.stop()
 
